@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Mental — Corpo, Cultura e Tecnologia</title>
+    <meta name="description" content="Mapa mental interativo sobre corpo, cultura e tecnologia baseado em García Canclini">
+    <style>
+        /* ─── RESET & BASE ─────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --blue:   #64c8ff;
+            --pink:   #ff006e;
+            --yellow: #ffbe0b;
+            --green:  #00d084;
+            --bg:     #07071a;
+            --bg2:    #0e0e2a;
+            --card:   rgba(15, 15, 45, 0.85);
+            --border: rgba(100, 200, 255, 0.25);
+            --text:   #dde4f0;
+            --muted:  #8891aa;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── PARTICLES ────────────────────────────────────────── */
+        #particles {
+            position: fixed; inset: 0;
+            pointer-events: none; z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: rgba(100,200,255,0.4);
+            border-radius: 50%;
+            animation: floatP var(--dur, 18s) var(--delay, 0s) infinite ease-in-out;
+        }
+        @keyframes floatP {
+            0%   { transform: translate(0,0); opacity:.2; }
+            33%  { transform: translate(var(--tx,12px), var(--ty,-20px)); opacity:.9; }
+            66%  { transform: translate(calc(var(--tx,12px)*-0.5), calc(var(--ty,-20px)*-0.4)); opacity:.5; }
+            100% { transform: translate(0,0); opacity:.2; }
+        }
+
+        /* ─── WRAPPER ──────────────────────────────────────────── */
+        .page {
+            position: relative; z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* ─── HERO HEADER ──────────────────────────────────────── */
+        .hero {
+            text-align: center;
+            margin-bottom: 56px;
+            animation: fadeDown .7s ease both;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(100,200,255,.1);
+            border: 1px solid var(--blue);
+            color: var(--blue);
+            font-size: .75rem;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: 4px 14px;
+            border-radius: 99px;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            font-weight: 900;
+            letter-spacing: .03em;
+            background: linear-gradient(135deg, var(--blue) 0%, var(--pink) 50%, var(--yellow) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+        .hero p {
+            color: var(--muted);
+            font-size: 1rem;
+            letter-spacing: .05em;
+        }
+
+        /* ─── LEGEND BAR ───────────────────────────────────────── */
+        .legend-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px 40px;
+            margin-bottom: 40px;
+            animation: fadeIn .7s .2s ease both;
+        }
+        .leg {
+            display: flex; align-items: center; gap: 10px;
+            font-size: .82rem; color: var(--muted);
+        }
+        .leg-dash {
+            width: 28px; height: 0;
+            border-top: 2px dashed;
+        }
+
+        /* ─── DIAGRAM AREA ─────────────────────────────────────── */
+        .diagram-wrap {
+            position: relative;
+            width: 100%;
+            /* fixed-ratio container keeps proportions on resize */
+            aspect-ratio: 16 / 9;
+            min-height: 480px;
+            max-height: 680px;
+            background: radial-gradient(ellipse at 50% 40%, rgba(20,20,60,.6), rgba(7,7,26,.95));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(100,200,255,.08), inset 0 0 40px rgba(100,200,255,.04);
+            margin-bottom: 64px;
+        }
+        .diagram-wrap canvas {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+        }
+        .nodes-layer {
+            position: absolute; inset: 0;
+            pointer-events: none;
+        }
+
+        /* ─── NODE ─────────────────────────────────────────────── */
+        .node {
+            position: absolute;
+            pointer-events: all;
+            cursor: pointer;
+            /* transform is applied via JS for centering */
+        }
+        .node-box {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            text-align: center;
+            width: 130px;
+            backdrop-filter: blur(12px);
+            transition: border-color .25s, box-shadow .25s, transform .25s cubic-bezier(.34,1.56,.64,1);
+            box-shadow: 0 4px 24px rgba(0,0,0,.4);
+        }
+        .node:hover .node-box,
+        .node:focus .node-box {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 1px var(--blue), 0 0 28px rgba(100,200,255,.35);
+            transform: scale(1.08);
+            outline: none;
+        }
+        /* Central node gets bigger */
+        .node[data-id="corpo"] .node-box {
+            width: 150px;
+            border-color: rgba(100,200,255,.5);
+            box-shadow: 0 0 30px rgba(100,200,255,.2);
+        }
+        .node-emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 6px;
+            line-height: 1;
+            animation: pulseEmoji 3s ease-in-out infinite;
+        }
+        .node:hover .node-emoji { animation: bounceEmoji .5s ease-in-out; }
+        .node-title {
+            font-size: .82rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: .05em;
+            margin-bottom: 3px;
+        }
+        .node-subtitle {
+            font-size: .68rem;
+            color: var(--blue);
+            letter-spacing: .03em;
+        }
+
+        @keyframes pulseEmoji {
+            0%,100% { transform: scale(1); }
+            50%      { transform: scale(1.07); }
+        }
+        @keyframes bounceEmoji {
+            0%,100% { transform: translateY(0); }
+            50%      { transform: translateY(-8px); }
+        }
+
+        /* ─── TOOLTIP ──────────────────────────────────────────── */
+        #tooltip {
+            position: fixed;
+            background: rgba(8,8,30,.96);
+            border: 1.5px solid rgba(100,200,255,.5);
+            border-radius: 12px;
+            padding: 12px 16px;
+            max-width: 300px;
+            font-size: .84rem;
+            line-height: 1.6;
+            color: var(--text);
+            box-shadow: 0 8px 32px rgba(0,0,0,.6);
+            pointer-events: none;
+            z-index: 200;
+            display: none;
+            backdrop-filter: blur(12px);
+            animation: ttSlide .2s ease;
+        }
+        #tooltip.show { display: block; }
+        @keyframes ttSlide {
+            from { opacity:0; transform: translateY(-6px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+
+        /* ─── INFO GRID ────────────────────────────────────────── */
+        .section-heading {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .section-heading h2 {
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .section-heading p {
+            color: var(--muted);
+            font-size: .9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* row spans for visual hierarchy */
+        .card-wide  { grid-column: span 2; }
+        .card-full  { grid-column: span 4; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 26px 24px;
+            transition: border-color .25s, transform .25s, box-shadow .25s;
+            animation: fadeUp .6s ease both;
+        }
+        .card:hover {
+            border-color: rgba(100,200,255,.5);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(100,200,255,.12);
+        }
+        .card-icon {
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .card h3 {
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--blue);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 10px;
+        }
+        .card p {
+            font-size: .88rem;
+            color: var(--muted);
+            line-height: 1.75;
+        }
+        .card p strong { color: var(--text); }
+
+        /* color accents per card */
+        .card--pink  { border-color: rgba(255,0,110,.2); }
+        .card--pink:hover { border-color: rgba(255,0,110,.6); box-shadow: 0 12px 40px rgba(255,0,110,.1); }
+        .card--pink h3 { color: var(--pink); }
+
+        .card--yellow { border-color: rgba(255,190,11,.2); }
+        .card--yellow:hover { border-color: rgba(255,190,11,.6); box-shadow: 0 12px 40px rgba(255,190,11,.08); }
+        .card--yellow h3 { color: var(--yellow); }
+
+        .card--green  { border-color: rgba(0,208,132,.2); }
+        .card--green:hover { border-color: rgba(0,208,132,.6); box-shadow: 0 12px 40px rgba(0,208,132,.1); }
+        .card--green h3 { color: var(--green); }
+
+        /* stagger animations */
+        .card:nth-child(1)  { animation-delay: .05s; }
+        .card:nth-child(2)  { animation-delay: .10s; }
+        .card:nth-child(3)  { animation-delay: .15s; }
+        .card:nth-child(4)  { animation-delay: .20s; }
+        .card:nth-child(5)  { animation-delay: .25s; }
+        .card:nth-child(6)  { animation-delay: .30s; }
+        .card:nth-child(7)  { animation-delay: .35s; }
+        .card:nth-child(8)  { animation-delay: .40s; }
+
+        /* ─── QUOTE BLOCK ──────────────────────────────────────── */
+        .quote-block {
+            border-left: 3px solid var(--blue);
+            padding: 12px 20px;
+            margin-top: 16px;
+            background: rgba(100,200,255,.05);
+            border-radius: 0 10px 10px 0;
+        }
+        .quote-block p {
+            font-style: italic;
+            font-size: .86rem;
+            color: var(--blue);
+        }
+        .quote-block cite {
+            display: block;
+            margin-top: 6px;
+            font-size: .78rem;
+            color: var(--muted);
+            font-style: normal;
+        }
+
+        /* ─── FOOTER ───────────────────────────────────────────── */
+        footer {
+            text-align: center;
+            margin-top: 72px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: .82rem;
+        }
+        footer span { color: var(--blue); }
+
+        /* ─── KEYFRAMES ────────────────────────────────────────── */
+        @keyframes fadeDown {
+            from { opacity:0; transform: translateY(-20px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity:0; }
+            to   { opacity:1; }
+        }
+        @keyframes fadeUp {
+            from { opacity:0; transform: translateY(18px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+
+        /* ─── RESPONSIVE ───────────────────────────────────────── */
+        @media (max-width: 1100px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .card-wide { grid-column: span 2; }
+            .card-full { grid-column: span 2; }
+        }
+        @media (max-width: 640px) {
+            .page { padding: 32px 16px 60px; }
+            .grid { grid-template-columns: 1fr; }
+            .card-wide, .card-full { grid-column: span 1; }
+            .diagram-wrap { aspect-ratio: unset; min-height: 520px; max-height: 520px; }
+            .node-box { width: 100px; padding: 10px 12px; }
+            .node-emoji { font-size: 1.5rem; }
+            .node-title { font-size: .7rem; }
+            .node-subtitle { font-size: .6rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<main class="page">
+
+    <!-- ── HEADER ─────────────────────────────────────── -->
+    <header class="hero">
+        <span class="hero-badge">Análise Cibernética Interativa</span>
+        <h1>Corpo, Cultura & Tecnologia</h1>
+        <p>Baseado em García Canclini · Passe o mouse nos nós para explorar os conceitos</p>
+    </header>
+
+    <!-- ── LEGEND ─────────────────────────────────────── -->
+    <nav class="legend-bar" aria-label="Legenda das conexões do diagrama">
+        <div class="leg"><div class="leg-dash" style="border-color:var(--blue)"></div><span>Fluxo Principal</span></div>
+        <div class="leg"><div class="leg-dash" style="border-color:var(--green)"></div><span>Derivação</span></div>
+        <div class="leg"><div class="leg-dash" style="border-color:var(--pink)"></div><span>Transformação</span></div>
+        <div class="leg"><div class="leg-dash" style="border-color:var(--yellow)"></div><span>Impacto</span></div>
+    </nav>
+
+    <!-- ── DIAGRAM ────────────────────────────────────── -->
+    <section aria-label="Diagrama interativo do mapa mental">
+        <div class="diagram-wrap">
+            <canvas id="diagramCanvas" role="img"
+                aria-label="Diagrama de nós mostrando as relações entre corpo, campos físico e digital, perfis de usuário, tecnologias e celular"></canvas>
+            <div class="nodes-layer" id="nodesLayer"></div>
+            <div id="tooltip" role="tooltip" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <!-- ── INFO CARDS ─────────────────────────────────── -->
+    <section aria-labelledby="cards-heading">
+        <div class="section-heading">
+            <h2 id="cards-heading">Conceitos-chave</h2>
+            <p>Clique em qualquer nó do diagrama ou leia os cartões abaixo</p>
+        </div>
+
+        <div class="grid">
+
+            <!-- 1 - wide -->
+            <article class="card card-wide">
+                <span class="card-icon" aria-hidden="true">👁️</span>
+                <h3>Corpo como Portador</h3>
+                <p>O corpo é muito mais do que físico. É um repositório vivo de cultura, experiências e comportamentos. Nas redes digitais, o corpo desaparece visualmente — mas os comportamentos que ele carrega ganham destaque total.</p>
+                <div class="quote-block">
+                    <p>"O corpo é meu ponto de vista sobre o mundo."</p>
+                    <cite>— Maurice Merleau-Ponty, filósofo</cite>
+                </div>
+            </article>
+
+            <!-- 2 -->
+            <article class="card">
+                <span class="card-icon" aria-hidden="true">🌍</span>
+                <h3>Campo Físico</h3>
+                <p>O corpo localizado no espaço real. Instituições e marcas esperam ver representados comportamentos específicos — postura, vestimenta, gestos.</p>
+            </article>
+
+            <!-- 3 -->
+            <article class="card card--green">
+                <span class="card-icon" aria-hidden="true">🌐</span>
+                <h3>Campo Digital</h3>
+                <p>No ambiente virtual, o corpo <strong>some</strong>. O que permanece e se intensifica são os comportamentos, opiniões e padrões de consumo.</p>
+            </article>
+
+            <!-- 4 - wide, pink -->
+            <article class="card card-wide card--pink">
+                <span class="card-icon" aria-hidden="true">⚖️</span>
+                <h3>A Dicotomia Falsa: Ativo vs Passivo</h3>
+                <p>Canclini desmonta o estereótipo de que o leitor é ativo e o espectador é passivo. O espectador interpreta e reelabora. O internauta combina os dois — lê, assiste, pesquisa e compartilha ao mesmo tempo.</p>
+            </article>
+
+            <!-- 5 -->
+            <article class="card">
+                <span class="card-icon" aria-hidden="true">📖</span>
+                <h3>Leitor</h3>
+                <p>Historicamente associado à atividade intelectual "nobre". Porém seu pensamento crítico não é superior ao do espectador — é apenas diferente.</p>
+            </article>
+
+            <!-- 6 -->
+            <article class="card">
+                <span class="card-icon" aria-hidden="true">🎬</span>
+                <h3>Espectador</h3>
+                <p>Apropria-se e reelabora o que assiste. Não é passivo: exerce pensamento crítico contínuo, mesmo aparentemente imóvel.</p>
+            </article>
+
+            <!-- 7 -->
+            <article class="card card--green">
+                <span class="card-icon" aria-hidden="true">💬</span>
+                <h3>Internauta</h3>
+                <p>Síntese dos três perfis. Lê, pesquisa, responde, compartilha — tudo ao mesmo tempo. Prova que ativo/passivo é uma divisão obsoleta.</p>
+            </article>
+
+            <!-- 8 - yellow -->
+            <article class="card card--yellow">
+                <span class="card-icon" aria-hidden="true">⚡</span>
+                <h3>Multitarefa Contínua</h3>
+                <p>O corpo nunca para mais. Lava louça enquanto assiste videoaula. Lê na bicicleta ergométrica. A "perda de tempo" foi eliminada pela portabilidade cultural.</p>
+            </article>
+
+            <!-- 9 - wide, yellow -->
+            <article class="card card-wide card--yellow">
+                <span class="card-icon" aria-hidden="true">🔓</span>
+                <h3>O Paradoxo Central</h3>
+                <p>Nas práticas digitais há uma <strong>sensação de autonomia</strong>, mas ao mesmo tempo ocorre um engajamento inconsciente com marcas. O prazer da descoberta se confunde com o trabalho corporal invisível de consumo.</p>
+                <div class="quote-block" style="border-color:var(--yellow)">
+                    <p style="color:var(--yellow)">"As mais recentes tecnologias aguçam a necessidade de distribuir nosso corpo entre o prazer da descoberta e o trabalho em prol das marcas."</p>
+                    <cite>— García Canclini, p. 43</cite>
+                </div>
+            </article>
+
+            <!-- 10 -->
+            <article class="card">
+                <span class="card-icon" aria-hidden="true">📡</span>
+                <h3>Portabilidade Cultural</h3>
+                <p>Rádio, fones, streaming. Cada tecnologia reorganiza <em>como</em> a cultura circula — não apenas o quê. A forma condiciona a experiência.</p>
+            </article>
+
+            <!-- 11 -->
+            <article class="card card--green">
+                <span class="card-icon" aria-hidden="true">📱</span>
+                <h3>Celular = Identidade</h3>
+                <p>Não apenas insere cultura. <strong>Reorganiza</strong> como vivemos, percebemos e a incorporamos ao cotidiano. Torna-se extensão do corpo.</p>
+            </article>
+
+            <!-- 12 - full, pink -->
+            <article class="card card-wide card--pink">
+                <span class="card-icon" aria-hidden="true">🦅</span>
+                <h3>Independência Paradoxal</h3>
+                <p>O celular liberta jovens do monitoramento parental — os pais deixam de saber onde estão. Mas ao mesmo tempo reconfigura comportamentos, opiniões e visão de mundo conforme as dinâmicas do próprio dispositivo.</p>
+                <div class="quote-block" style="border-color:var(--pink)">
+                    <p style="color:var(--pink)">"O celular torna os jovens independentes dos pais, porque estes deixam de saber exatamente onde aqueles estão e o que fazem com seus corpos."</p>
+                    <cite>— García Canclini, p. 44</cite>
+                </div>
+            </article>
+
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>Corpo, Cultura e Tecnologia na Era Digital &nbsp;·&nbsp; <span>García Canclini</span></p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PARTICLES
+═══════════════════════════════════════════════════════ */
+(function () {
+    const c = document.getElementById('particles');
+    for (let i = 0; i < 55; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left   = Math.random() * 100 + '%';
+        p.style.top    = Math.random() * 100 + '%';
+        p.style.setProperty('--dur',   (14 + Math.random() * 18) + 's');
+        p.style.setProperty('--delay', (Math.random() * 18) + 's');
+        p.style.setProperty('--tx',    (Math.random() * 30 - 15) + 'px');
+        p.style.setProperty('--ty',    (Math.random() * 40 - 30) + 'px');
+        c.appendChild(p);
+    }
+})();
+
+/* ═══════════════════════════════════════════════════════
+   DIAGRAM
+═══════════════════════════════════════════════════════ */
+
+/* Layout: 4 rows, nodes positioned as % of container W/H
+   Row 0 (top):    campo-fisico  |  corpo  |  campo-digital
+   Row 1 (mid-up): leitor  | tecnologias  |  celular  | internauta
+   Row 2 (mid-dn): espectador          |          independencia
+   Row 3 (bottom):          esquematismo
+*/
+const NODES = [
+    { id:'corpo',        title:'CORPO',         subtitle:'Portador de Cultura',   emoji:'👁️',   px:.50, py:.12 },
+    { id:'campo-fisico', title:'Campo Físico',   subtitle:'Localizado',            emoji:'🌍',   px:.18, py:.12 },
+    { id:'campo-digital',title:'Campo Digital',  subtitle:'Virtual',               emoji:'🌐',   px:.82, py:.12 },
+    { id:'leitor',       title:'Leitor',         subtitle:'Atividade Intelectual', emoji:'📖',   px:.12, py:.44 },
+    { id:'tecnologias',  title:'Tecnologias',    subtitle:'Portabilidade',         emoji:'📡',   px:.36, py:.44 },
+    { id:'celular',      title:'Celular',         subtitle:'Extensão do Corpo',     emoji:'📱',   px:.64, py:.44 },
+    { id:'internauta',   title:'Internauta',     subtitle:'Múltiplas Ações',       emoji:'💬',   px:.88, py:.44 },
+    { id:'espectador',   title:'Espectador',     subtitle:'Apropriação Crítica',   emoji:'🎬',   px:.28, py:.73 },
+    { id:'independencia',title:'Independência',  subtitle:'Autonomia Paradoxal',   emoji:'🦅',   px:.72, py:.73 },
+    { id:'esquematismo', title:'Esquematismo',   subtitle:'Ativo vs Passivo',      emoji:'⚖️',  px:.50, py:.90 },
+];
+
+const CONNS = [
+    { from:'corpo',        to:'campo-fisico',  color:'#64c8ff' },
+    { from:'corpo',        to:'campo-digital', color:'#64c8ff' },
+    { from:'corpo',        to:'tecnologias',   color:'#64c8ff' },
+    { from:'corpo',        to:'celular',        color:'#64c8ff' },
+    { from:'campo-digital',to:'leitor',         color:'#00d084' },
+    { from:'campo-digital',to:'espectador',     color:'#00d084' },
+    { from:'campo-digital',to:'internauta',     color:'#00d084' },
+    { from:'leitor',       to:'esquematismo',  color:'#ff006e' },
+    { from:'espectador',   to:'esquematismo',  color:'#ff006e' },
+    { from:'internauta',   to:'esquematismo',  color:'#ff006e' },
+    { from:'tecnologias',  to:'celular',        color:'#ffbe0b' },
+    { from:'celular',      to:'independencia', color:'#00d084' },
+    { from:'internauta',   to:'celular',        color:'#64c8ff' },
+];
+
+const DESCS = {
+    'corpo':        'Portador de cultura e emancipação própria. Não é apenas físico — é repositório de experiências, comportamentos e significados.',
+    'campo-fisico': 'Corpo localizado e presente. As instituições esperam ver representados comportamentos específicos: postura, vestimenta, gestos.',
+    'campo-digital':'Em redes virtuais, o corpo desaparece fisicamente. O que permanece — e se amplifica — são os comportamentos e padrões de consumo.',
+    'leitor':       'Historicamente associado à atividade intelectual. Mas seu pensamento crítico não é superior ao do espectador — é apenas diferente.',
+    'espectador':   'Apropria-se e reelabora o que assiste. Não é passivo: exerce pensamento crítico contínuo, mesmo aparentemente imóvel.',
+    'internauta':   'Combina leitura, pesquisa, resposta e compartilhamento. Síntese dos perfis anteriores — prova que ativo/passivo é divisão obsoleta.',
+    'esquematismo': 'A divisão que coloca leitores como ativos e espectadores como passivos nunca se sustentou — e ruiu definitivamente com o internauta.',
+    'tecnologias':  'Rádio, fones, streaming. Cada tecnologia reorganiza como a cultura circula, não apenas o quê. A forma condiciona a experiência.',
+    'celular':      'Acessório de identidade. Torna-se extensão do corpo, "grudando" cultura nele. Reorganiza como vivemos, percebemos e nos relacionamos.',
+    'independencia':'Liberta jovens do monitoramento parental. Mas ao mesmo tempo reconfigura comportamentos e visão de mundo conforme lógicas do dispositivo.',
+};
+
+const canvas  = document.getElementById('diagramCanvas');
+const ctx     = canvas.getContext('2d');
+const layer   = document.getElementById('nodesLayer');
+const tooltip = document.getElementById('tooltip');
+
+function resize() {
+    const r = canvas.parentElement.getBoundingClientRect();
+    canvas.width  = r.width;
+    canvas.height = r.height;
+}
+
+function nodeCenter(id) {
+    const el = layer.querySelector(`[data-id="${id}"]`);
+    if (!el) return null;
+    const er = el.getBoundingClientRect();
+    const pr = canvas.parentElement.getBoundingClientRect();
+    return {
+        x: er.left - pr.left + er.width  / 2,
+        y: er.top  - pr.top  + er.height / 2,
+        hw: er.width  / 2,
+        hh: er.height / 2,
+    };
+}
+
+function edgePoint(cx, cy, hw, hh, angle) {
+    /* Find intersection of ray from center at `angle` with rounded rect edges */
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const tx = cos !== 0 ? hw / Math.abs(cos) : Infinity;
+    const ty = sin !== 0 ? hh / Math.abs(sin) : Infinity;
+    const t  = Math.min(tx, ty) * 1.05; // small padding
+    return { x: cx + cos * t, y: cy + sin * t };
+}
+
+function drawConnections() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    CONNS.forEach(conn => {
+        const f = nodeCenter(conn.from);
+        const t = nodeCenter(conn.to);
+        if (!f || !t) return;
+
+        const angle = Math.atan2(t.y - f.y, t.x - f.x);
+        const start = edgePoint(f.x, f.y, f.hw, f.hh, angle);
+        const end   = edgePoint(t.x, t.y, t.hw, t.hh, angle + Math.PI);
+
+        /* control point: slight curve */
+        const mx = (start.x + end.x) / 2;
+        const my = (start.y + end.y) / 2;
+        const perp = angle + Math.PI / 2;
+        const bulge = Math.hypot(end.x - start.x, end.y - start.y) * .12;
+        const cpx = mx + Math.cos(perp) * bulge;
+        const cpy = my + Math.sin(perp) * bulge;
+
+        /* dashed line */
+        ctx.save();
+        ctx.strokeStyle = conn.color;
+        ctx.lineWidth   = 1.8;
+        ctx.setLineDash([5, 5]);
+        ctx.lineCap     = 'round';
+        ctx.globalAlpha = .75;
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.quadraticCurveTo(cpx, cpy, end.x, end.y);
+        ctx.stroke();
+        ctx.restore();
+
+        /* arrowhead */
+        const arrAngle = Math.atan2(end.y - cpy, end.x - cpx);
+        const aS = 10;
+        ctx.save();
+        ctx.fillStyle   = conn.color;
+        ctx.globalAlpha = .9;
+        ctx.beginPath();
+        ctx.moveTo(end.x, end.y);
+        ctx.lineTo(end.x - aS * Math.cos(arrAngle - Math.PI/6), end.y - aS * Math.sin(arrAngle - Math.PI/6));
+        ctx.lineTo(end.x - aS * Math.cos(arrAngle + Math.PI/6), end.y - aS * Math.sin(arrAngle + Math.PI/6));
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+function placeNodes() {
+    layer.innerHTML = '';
+    const w = canvas.width, h = canvas.height;
+
+    NODES.forEach(nd => {
+        const el  = document.createElement('div');
+        el.className = 'node';
+        el.dataset.id = nd.id;
+        el.setAttribute('tabindex',   '0');
+        el.setAttribute('role',       'button');
+        el.setAttribute('aria-label', `${nd.title}: ${nd.subtitle}. ${DESCS[nd.id]}`);
+
+        el.innerHTML = `
+          <div class="node-box">
+            <span class="node-emoji" aria-hidden="true">${nd.emoji}</span>
+            <div class="node-title">${nd.title}</div>
+            <div class="node-subtitle">${nd.subtitle}</div>
+          </div>`;
+
+        layer.appendChild(el);
+
+        /* rough initial place before knowing real size */
+        el.style.left = (nd.px * w) + 'px';
+        el.style.top  = (nd.py * h) + 'px';
+        el.style.transform = 'translate(-50%,-50%)';
+
+        /* tooltip helpers */
+        const show = () => {
+            tooltip.textContent = DESCS[nd.id];
+            tooltip.classList.add('show');
+            move();
+        };
+        const move = () => {
+            const r = el.getBoundingClientRect();
+            let lx = r.right + 14;
+            let ly = r.top;
+            if (lx + 310 > window.innerWidth)  lx = r.left - 324;
+            if (lx < 8)                          lx = 8;
+            if (ly + 120 > window.innerHeight)   ly = window.innerHeight - 130;
+            tooltip.style.left = lx + 'px';
+            tooltip.style.top  = ly + 'px';
+        };
+        const hide = () => tooltip.classList.remove('show');
+
+        el.addEventListener('mouseenter', show);
+        el.addEventListener('mousemove',  move);
+        el.addEventListener('mouseleave', hide);
+        el.addEventListener('focus',      show);
+        el.addEventListener('blur',       hide);
+    });
+}
+
+function render() {
+    resize();
+    placeNodes();
+    requestAnimationFrame(drawConnections);
+}
+
+render();
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(render, 120);
+});
+window.addEventListener('scroll', () => {
+    requestAnimationFrame(drawConnections);
+});
+</script>
+
+</body>
+</html>
